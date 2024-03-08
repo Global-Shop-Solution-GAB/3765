@@ -1,0 +1,346 @@
+Program.Sub.ScreenSU.Start
+gui.SS_Form1..create
+gui.SS_Form1..caption("Select Sheet")
+gui.SS_Form1..size(2250,1810)
+gui.SS_Form1..position(0,0)
+gui.SS_Form1..event(unload,ss_form1_unload)
+gui.SS_Form1..alwaysontop(False)
+gui.SS_Form1..fontname("Arial")
+gui.SS_Form1..fontsize(8)
+gui.SS_Form1..forecolor(0)
+gui.SS_Form1..fontstyle(,,,,)
+gui.SS_Form1..BackColor(-2147483633)
+gui.SS_Form1..controlbox(True)
+gui.SS_Form1..maxbutton(False)
+gui.SS_Form1..minbutton(False)
+gui.SS_Form1..mousepointer(0)
+gui.SS_Form1..moveable(True)
+gui.SS_Form1..sizeable(False)
+gui.SS_Form1..ShowInTaskBar(True)
+gui.SS_Form1..titlebar(True)
+gui.SS_Form1.lbl_txtSheet.create(label,"Sheet Number",True,1800,200,1,100,135,True,0,Arial,8,-2147483633,0)
+gui.SS_Form1.cmdOk.create(button)
+gui.SS_Form1.cmdOk.caption("Ok")
+gui.SS_Form1.cmdOk.visible(True)
+gui.SS_Form1.cmdOk.size(1000,360)
+gui.SS_Form1.cmdOk.zorder(0)
+gui.SS_Form1.cmdOk.position(100,835)
+gui.SS_Form1.cmdOk.enabled(True)
+gui.SS_Form1.cmdOk.fontname("Arial")
+gui.SS_Form1.cmdOk.fontsize(8)
+gui.SS_Form1.cmdOk.event(click,cmdok_click)
+gui.SS_Form1.drpSheetId.create(dropdownlist)
+gui.SS_Form1.drpSheetId.visible(True)
+gui.SS_Form1.drpSheetId.size(1455,330)
+gui.SS_Form1.drpSheetId.zorder(0)
+gui.SS_Form1.drpSheetId.position(100,390)
+gui.SS_Form1.drpSheetId.enabled(True)
+gui.SS_Form1.drpSheetId.fontname("Arial")
+gui.SS_Form1.drpSheetId.fontsize(8)
+
+
+gui.Form2..create
+gui.Form2..caption("GCG_Quote_Line_Upload")
+gui.Form2..size(4530,1515)
+gui.Form2..position(0,0)
+gui.Form2..alwaysontop(False)
+gui.Form2..fontname("Arial")
+gui.Form2..fontsize(8)
+gui.Form2..forecolor(0)
+gui.Form2..fontstyle(,,,,)
+gui.Form2..BackColor(-2147483633)
+gui.Form2..controlbox(True)
+gui.Form2..maxbutton(True)
+gui.Form2..minbutton(True)
+gui.Form2..mousepointer(0)
+gui.Form2..moveable(True)
+gui.Form2..sizeable(True)
+gui.Form2..ShowInTaskBar(True)
+gui.Form2..titlebar(True)
+gui.Form2.lbl1.create(label,"Loading Quote Lines",True,4035,585,1,200,275,True,0,Arial,18,-2147483633,0)
+gui.Form2.lbl1.fontstyle(True,False,False,False)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.UDT.uFile.Define("Quote",String)
+Variable.UDT.uFile.Define("Description",String)
+Variable.UDT.uFile.Define("Part",String)
+Variable.UDT.uFile.Define("CustPart",String)
+Variable.UDT.uFile.Define("Qty",float)
+Variable.uGlobal.uFile.Declare("uFile")
+Variable.Global.sApp.Declare(String)
+Variable.Global.sWrkBk.Declare(String)
+Variable.Global.bExcelOpen.Declare(Boolean,false)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: JCT
+'Project Start Date: 07/14/2011
+'for SMS Meers
+'Hooks:
+'  Custom
+
+
+F.ODBC.Connection!Con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+F.Intrinsic.Control.CallSub(Readfile)
+
+
+'F.Intrinsic.Control.CallSub(Readfile)
+'F.Intrinsic.Control.CallSub(Ss_form1_unload)
+
+Program.Sub.Main.End
+
+Program.Sub.ReadFile.Start
+
+
+
+
+V.Local.bExcelChk.declare(Boolean)
+V.Local.sFileName.Declare(String)
+V.Local.sApp.Declare(String)
+V.Local.sWrkBk.Declare(String)
+V.Local.iSheet.Declare(Long)
+V.Local.iFor.Declare(Long)
+
+F.Automation.MSExcel.CheckPresence(V.Local.bExcelChk)
+F.Intrinsic.Control.If(V.Local.bExcelChk,=,True)
+	Function.Intrinsic.UI.ShowOpenFileDialog("","xls|*.xls",,Variable.Local.sFileName)
+	F.Intrinsic.Control.If(V.Local.sFileName,=,"***CANCEL***")
+		F.Intrinsic.Control.CallSub(Ss_form1_unload)
+	F.Intrinsic.Control.Else
+		F.Automation.MSExcel.CreateAppObject(V.Global.sApp)
+		F.Automation.MSExcel.OpenWorkbook(V.Global.sApp,"WrkBk",V.Local.sFileName)
+			V.Global.bExcelOpen.Set(True)
+			Function.Automation.MSExcel.GetWorksheetCount("WrkBk",V.Local.iSheet)
+			F.Intrinsic.Control.For(V.Local.iFor,1,V.Local.iSheet,1)
+				Gui.SS_Form1.drpSheetId.AddItem(V.Local.iFor)
+			F.Intrinsic.Control.Next(V.Local.iFor)
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox("Excel not found!")
+	F.Intrinsic.Control.CallSub(Ss_form1_unload)
+F.Intrinsic.Control.EndIf
+
+Gui.SS_Form1..Show
+
+
+Program.Sub.ReadFile.End
+
+Program.Sub.LoadFile.Start
+
+F.Intrinsic.Control.SetErrorHandler("FileProc_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.i.Declare(Long)
+V.Local.iLine.Declare(Long)
+V.Local.sSel.Declare(String)
+V.Local.iOrder.Declare(Long)
+V.Local.suploadfile.Declare(String)
+V.Local.sOrder.Declare(String)
+V.Local.sCurrentRecord.Declare(String)
+V.Local.sOrderDate.declare(String)
+V.Local.sDateDue.Declare(String)
+V.Local.sValues.Declare(String)
+V.Local.sLengths.Declare(String)
+V.Local.sLinedata.Declare(String)
+V.Local.sCost.Declare(String)
+V.Local.sExtension.Declare(String)
+V.Local.sPrice.Declare(String)
+V.Local.sDescription.Declare(String)
+V.Local.sParams.Declare(String)
+V.Local.sfiller.Declare(String)
+V.Local.fCost.Declare(String)
+V.Local.fPrice.Declare(Float)
+V.Local.sLineNo.Declare(String)
+V.Local.sQty.Declare(String)
+V.Local.sCustomer.Declare(String)
+V.Local.smsg.Declare(String)
+V.Local.fExt.Declare(Float)
+V.Local.sCurrCode.Declare(String)
+
+
+F.Intrinsic.Control.If(V.uGlobal.uFile.UBound,<>,-1)
+
+		F.Intrinsic.String.LPad(V.uGlobal.uFile(v.Local.i)!Quote.Trim,"0 ",7,V.uGlobal.uFile(v.Local.i)!Quote)
+		F.Intrinsic.String.Concat("select max( RECORD_NO) as RECORD_NO from V_QUOTE_LINES where QUOTE_NO='",V.uGlobal.uFile(v.Local.i)!Quote,"'",V.Local.sSel)
+		F.ODBC.Connection!Con.OpenRecordsetRO("rstSelA",V.Local.sSel)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstSelA.EOF,=,False)
+				V.Local.iLine.Set(V.ODBC.Con!rstSelA.FieldVal!RECORD_NO)
+			F.Intrinsic.Control.EndIf
+		F.ODBC.Con!rstSelA.Close
+
+
+	F.Intrinsic.Control.For(V.Local.i,V.uGlobal.uFile.LBound,V.uGlobal.uFile.UBound,1)
+		F.Intrinsic.String.LPad(V.uGlobal.uFile(v.Local.i)!Quote.Trim,"0 ",7,V.uGlobal.uFile(v.Local.i)!Quote)
+
+		F.Intrinsic.String.Concat("select CUSTOMER,COMPANY_CURRENCY from V_QUOTE_HEADER where QUOTE_NO='",V.uGlobal.uFile(v.Local.i)!Quote,"'",V.Local.sSel)
+		F.ODBC.Connection!Con.OpenRecordsetRO("rstSelA",V.Local.sSel)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstSelA.EOF,=,False)
+				V.Local.sCustomer.Set(V.ODBC.Con!rstSelA.FieldValTrim!CUSTOMER)
+				V.Local.sCurrCode.Set(V.ODBC.Con!rstSelA.FieldVal!COMPANY_CURRENCY)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Concat("Quote Header not found for Quote #",V.uGlobal.uFile(v.Local.i)!Quote,V.Local.smsg)
+				F.Intrinsic.UI.Msgbox(V.Local.smsg)
+				F.Intrinsic.Control.CallSub(Ss_form1_unload)
+			F.Intrinsic.Control.EndIf
+		F.ODBC.Con!rstSelA.Close
+
+		F.Intrinsic.String.Concat("select DESCRIPTION_2,DESCRIPTION_3,AMT_PRICE,AMT_COST,AMT_ALT_COST,PRODUCT_LINE from INVENTORY_MSTR left outer join INVENTORY_MST2 on INVENTORY_MSTR.PART=INVENTORY_MST2.PART where  INVENTORY_MSTR.PART='",V.uGlobal.uFile(v.Local.i)!Part.Trim,"'",V.Local.sSel)
+		F.ODBC.Connection!Con.OpenRecordsetRO("rstSelA",V.Local.sSel)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstSelA.EOF,=,False)
+				V.Local.fCost.Set(V.ODBC.Con!rstSelA.FieldVal!AMT_COST)
+				V.Local.fPrice.Set(V.ODBC.Con!rstSelA.FieldVal!AMT_PRICE)
+			F.Intrinsic.Control.Else
+				V.Local.fCost.Set(0)
+				V.Local.fPrice.Set(0)
+			F.Intrinsic.Control.EndIf
+		F.ODBC.Con!rstSelA.Close
+F.Intrinsic.Debug.Stop
+		F.Intrinsic.Math.Add(V.Local.iLine,10,V.Local.iLine)
+		F.Intrinsic.String.LPad(V.Local.iLine,"0",4,V.Local.sLineNo)
+		F.Intrinsic.Math.Mult(V.Local.fPrice,V.uGlobal.uFile(v.Local.i)!Qty,V.Local.fExt)
+
+		F.Intrinsic.String.RPad(V.uGlobal.uFile(v.Local.i)!Part.Trim," ",20,V.uGlobal.uFile(v.Local.i)!Part)
+		F.Intrinsic.String.RPad(V.uGlobal.uFile(v.Local.i)!Description.Trim," ",30,V.uGlobal.uFile(v.Local.i)!Description)
+		F.Intrinsic.String.RPad(V.uGlobal.uFile(v.Local.i)!CustPart.Trim," ",32,V.uGlobal.uFile(v.Local.i)!CustPart)
+		F.Intrinsic.String.Format(V.Local.fCost,"0.000000",V.Local.sCost)
+		F.Intrinsic.String.Format(V.Local.fPrice,"0.00000",V.Local.sPrice)
+		F.Intrinsic.String.Format(V.Local.fExt,"0.00",V.Local.sExtension)
+		F.Intrinsic.String.Format(V.uGlobal.uFile(v.Local.i)!Qty,"0.0000",V.Local.sQty)
+
+'**********L****************
+		F.Intrinsic.String.Concat(V.uGlobal.uFile(v.Local.i)!Quote,",",V.Local.sLineNo,",L,",V.Local.sCustomer,",",V.Local.sfiller,",S,",V.Local.sQty,",",V.Local.sfiller,",",V.uGlobal.uFile(v.Local.i)!Part,",",V.Local.sfiller,",",V.Local.sPrice,",",V.Local.sCost,",",V.Local.sfiller,",",V.uGlobal.uFile(v.Local.i)!Description,",",V.Local.sfiller,",",V.uGlobal.uFile(v.Local.i)!CustPart,",",V.Local.sfiller,",",V.Local.sCurrCode,",",V.Local.sExtension,V.Local.sValues)
+		F.Intrinsic.String.Split(V.Local.sValues,",",V.Local.sValues)
+		F.Intrinsic.String.Split("7,3,1,6,6,1,19,18,20,1,19,19,12,30,314,32,40,3,19",",",V.Local.sLengths)
+		F.Intrinsic.String.PositionalString(V.Local.sValues,V.Local.sLengths,V.Local.sCurrentRecord)
+		F.Intrinsic.String.RPad(V.Local.sCurrentRecord," ",857,V.Local.sCurrentRecord)
+			F.Intrinsic.Control.If(V.Local.i,=,0)
+				V.Local.sLinedata.Set(V.Local.sCurrentRecord)
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Concat(V.Local.sLinedata,V.Ambient.NewLine,V.Local.sCurrentRecord,V.Local.sLinedata)
+			F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.Control.Next(V.Local.i)
+
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\QUOTE.txt",V.Local.suploadfile)
+F.Intrinsic.File.String2File(V.Local.suploadfile,V.Local.sLinedata)
+F.Intrinsic.String.Concat("NS!*!52","",V.Local.sParams)
+F.Global.General.CallWrapperAsync(6002,V.Local.sParams)
+
+
+F.Intrinsic.Control.CallSub(Ss_form1_unload)
+
+
+F.Intrinsic.Control.Label("FileProc_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_Quote_Line_Upload.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+
+
+Program.Sub.LoadFile.End
+
+program.sub.ss_form1_unload.start
+
+F.Intrinsic.Control.If(V.Global.bExcelOpen,=,True)
+	F.Automation.Generic.DestroyObject("WrkBk")
+	F.Automation.Generic.DestroyObject(V.Global.sApp)
+F.Intrinsic.Control.EndIf
+
+
+F.ODBC.Connection!Con.Close
+F.Intrinsic.Control.End
+
+program.sub.ss_form1_unload.end
+
+program.sub.cmdok_click.start
+
+F.Intrinsic.Control.If(V.Screen.SS_Form1!drpSheetId.Text,=,"")
+	F.Intrinsic.UI.Msgbox("Select sheet to load")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.SetErrorHandler("FileOpen_Err")
+F.Intrinsic.Control.ClearErrors
+
+V.Local.sError.Declare(String)
+V.Local.bExcelChk.Declare(Boolean)
+V.Local.sFileName.Declare(String)
+V.Local.iRows.Declare(Long)
+V.Local.i.Declare(Long)
+V.Local.iUB.Declare(Long)
+V.Local.sTxt.Declare(String)
+V.Local.dDate.Declare(Date)
+V.Local.sPOpref.Declare(String)
+V.Local.sPoOseq.Declare(String)
+V.Local.sret.Declare(String)
+V.Local.iSheet.Declare(Long)
+
+
+V.uGlobal.uFile.Redim(-1,-1)
+V.Local.iUB.Set(-1)
+v.Local.iSheet.Set(V.Screen.SS_Form1!drpSheetId.Text.trim)
+
+F.Automation.MSExcel.OpenWorksheet(V.Global.sWrkBk,"Sheet",V.Local.iSheet)
+F.Automation.MSExcel.RowCount("Sheet",V.Local.iRows)
+	F.Intrinsic.Control.If(V.Local.iRows,<=,1)
+		F.Intrinsic.UI.Msgbox("No data on selected sheet")
+		F.Automation.Generic.DestroyObject("Sheet")
+		F.Intrinsic.Control.ExitSub
+	F.Intrinsic.Control.EndIf
+
+Gui.SS_Form1..Visible(false)
+Gui.Form2..Show
+
+
+	F.Intrinsic.Control.For(V.Local.i,2,V.Local.iRows,1)
+		V.Local.sTxt.Set("")
+		F.Intrinsic.Control.If(V.uGlobal.uFile.UBound,=,-1)
+			V.uGlobal.uFile.Redim(0,0)
+		F.Intrinsic.Control.EndIf
+		F.Intrinsic.Math.Add(V.Local.iUB,1,V.Local.iUB)
+		V.uGlobal.uFile.RedimPreserve(V.uGlobal.uFile.LBound,V.Local.iUB)
+			F.Automation.MSExcel.ReadCell("Sheet",V.Local.i,1,V.Local.sTxt)
+				V.uGlobal.uFile(V.Local.iUB)!Quote.Set(V.Local.sTxt.Trim)
+			F.Automation.MSExcel.ReadCell("Sheet",V.Local.i,2,V.Local.sTxt)
+				V.uGlobal.uFile(V.Local.iUB)!Description.Set(V.Local.sTxt.Trim)
+			F.Automation.MSExcel.ReadCell("Sheet",V.Local.i,3,V.Local.sTxt)
+				V.uGlobal.uFile(V.Local.iUB)!Part.Set(V.Local.sTxt.Trim)
+			F.Automation.MSExcel.ReadCell("Sheet",V.Local.i,4,V.Local.sTxt)
+				V.uGlobal.uFile(V.Local.iUB)!CustPart.Set(V.Local.sTxt.Trim)
+			F.Automation.MSExcel.ReadCell("Sheet",V.Local.i,5,V.Local.sTxt)
+				V.uGlobal.uFile(v.Local.iUB)!Qty.Set(V.Local.sTxt)
+		F.Intrinsic.Control.Next(V.Local.i)
+
+F.Automation.Generic.DestroyObject("Sheet")
+'F.Automation.Generic.DestroyObject("WrkBk")
+'F.Automation.Generic.DestroyObject(V.Global.sApp)
+
+F.Intrinsic.Control.CallSub(Loadfile)
+
+
+F.Intrinsic.Control.Label("FileOpen_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: NewScript1.gas",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+Function.Intrinsic.Control.EndIf
+
+
+program.sub.cmdok_click.end
+
+Program.Sub.ScreenSS.Start
+SS_Form1{{CAPTION::Select Sheet
+SS_Form1.CTRL{{NAME::txtSheet\\TYPE::2\\CAPTION::Sheet Number\\GROUP::1\\BROWSER::0
+SS_Form1.CTRL{{NAME::cmdOk\\TYPE::5\\CAPTION::Ok\\GROUP::2\\BROWSER::0
+
+Program.Sub.ScreenSS.End
+
